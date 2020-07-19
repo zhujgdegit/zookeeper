@@ -24,6 +24,7 @@ limitations under the License.
     * [zkTxnLogToolkit.sh](#zkTxnLogToolkit)
     * [zkSnapShotToolkit.sh](#zkSnapShotToolkit)
     * [zkSnapshotComparer.sh](#zkSnapshotComparer)
+    * [zkWatchBenchmark.sh](#zkWatchBenchmark)
     
 * [Testing](#Testing)
     * [Jepsen Test](#jepsen-test)
@@ -424,6 +425,38 @@ All layers compared.
 ```
 
 Or use `^c` to exit interactive mode anytime.
+
+
+<a name="zkWatchBenchmark"></a>
+
+### zkWatchBenchmark.sh
+- A benchmark tool that benchmarks the watch throughput and latency, which supports multiple clients threads, multiple watch modes
+- See **ZOOKEEPER-3823** for the design document
+- Notes:
+    - `export JVMFLAGS="-Xms12g -Xmx12g"` to have more JVM heap size to avoid `GC overhead limit exceeded` when you have a large scale testing
+    - `-v` to print a detailed logs when you find no benchmark output result for a long time
+- Usages:
+
+
+        nohup ./zkWatchBenchmark.sh -root_path /bench-watch -threads 100 -znode_count 1000 -force -connect_string \n
+            192.168.10.43:2181,192.168.10.45:2181,192.168.10.47:2181 -watch_mode p -watch_multiple 5 \n
+            -client_configuration /tmp/zk-conf.txt ReadOnlyRequestProcessor.java -timeout 300000 > /tmp/nohup.out &
+
+
+        Notification expected count: 500000, received count: 500000 (1.0), loss count: 0 (0.0)
+        [Latency distribution]:
+        Avg latency: 108.0 ms
+        Fastest latency: 1.0 ms
+        Slowest latency: 1129.0 ms
+        10th percentile notification latency: 7 ms
+        25th percentile notification latency: 14 ms
+        50th percentile notification latency: 54 ms
+        75th percentile notification latency: 120 ms
+        90th percentile notification latency: 190 ms
+        95th percentile notification latency: 250 ms
+        99th percentile notification latency: 1086 ms
+        Total time:27934 ms, watch benchmark total time: 10341 ms, throughput:50000.0 op/s
+
 
 <a name="Testing"></a>
 
