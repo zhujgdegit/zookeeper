@@ -100,7 +100,7 @@ public class SaslAuthTest extends ClientBase {
         return createClient(watcher, hp);
     }
 
-    private class MyWatcher extends CountdownWatcher {
+    private class MyWatcher extends StateWatcher {
 
         @Override
         public synchronized void process(WatchedEvent event) {
@@ -170,7 +170,7 @@ public class SaslAuthTest extends ClientBase {
 
     @Test
     public void testZKOperationsAfterClientSaslAuthFailure() throws Exception {
-        CountdownWatcher watcher = new CountdownWatcher();
+        StateWatcher watcher = new StateWatcher();
         ZooKeeper zk = new ZooKeeper(hostPort, CONNECTION_TIMEOUT, watcher);
         watcher.waitForConnected(CONNECTION_TIMEOUT);
         try {
