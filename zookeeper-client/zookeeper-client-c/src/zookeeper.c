@@ -1296,6 +1296,23 @@ static void log_env(zhandle_t *zh) {
 }
 
 /**
+ * Macros only used in zoo_version_str
+ */
+#define STRINGIFY_WITH_EXPAND(x) STRINGIFY_NO_EXPAND(x)
+#define STRINGIFY_NO_EXPAND(x) #x
+
+/**
+ * Return string of "MAJOR.MINOR.PATCH"
+ */
+const char *zoo_version_str()
+{
+    return
+      STRINGIFY_WITH_EXPAND(ZOO_MAJOR_VERSION) "."
+      STRINGIFY_WITH_EXPAND(ZOO_MINOR_VERSION) "."
+      STRINGIFY_WITH_EXPAND(ZOO_PATCH_VERSION);
+}
+
+/**
  * Create a zookeeper handle associated with the given host and port.
  */
 static zhandle_t *zookeeper_init_internal(const char *host, watcher_fn watcher,
