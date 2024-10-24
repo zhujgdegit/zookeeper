@@ -135,7 +135,7 @@ public class LeaderBeanTest {
     }
 
     @Test
-    public void testGetProposalSize() throws IOException, Leader.XidRolloverException {
+    public void testGetProposalSize() throws IOException {
         // Arrange
         Request req = createMockRequest();
 
@@ -150,7 +150,7 @@ public class LeaderBeanTest {
     }
 
     @Test
-    public void testResetProposalStats() throws IOException, Leader.XidRolloverException {
+    public void testResetProposalStats() throws IOException {
         // Arrange
         int initialProposalSize = leaderBean.getLastProposalSize();
         Request req = createMockRequest();
