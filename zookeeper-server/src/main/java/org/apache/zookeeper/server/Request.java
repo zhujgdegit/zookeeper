@@ -366,7 +366,7 @@ public class Request {
     }
 
     public boolean isRollover() {
-        return isQuorum() && ZxidUtils.isLastEpochZxid(zxid);
+        return isQuorum() && zxid > 0 && ZxidUtils.isLastEpochZxid(zxid);
     }
 
     public static String op2String(int op) {

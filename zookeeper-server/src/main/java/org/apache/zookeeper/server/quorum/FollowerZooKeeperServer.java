@@ -49,7 +49,10 @@ import org.slf4j.LoggerFactory;
 public class FollowerZooKeeperServer extends LearnerZooKeeperServer {
 
     private static final Logger LOG = LoggerFactory.getLogger(FollowerZooKeeperServer.class);
-    private final ParticipantRequestSyncer requestSyncer = new ParticipantRequestSyncer(this, LOG, this::logRequest);
+
+    // This should be final as it is constructed with no external variables. It is not to allow mockito spy which
+    // intercepts `this`.
+    private ParticipantRequestSyncer requestSyncer;
 
     /*
      * Pending sync requests
@@ -77,6 +80,7 @@ public class FollowerZooKeeperServer extends LearnerZooKeeperServer {
         ((FollowerRequestProcessor) firstProcessor).start();
         syncProcessor = new SyncRequestProcessor(this, new SendAckRequestProcessor(getFollower()));
         syncProcessor.start();
+        requestSyncer = new ParticipantRequestSyncer(this, LOG, this::logRequest);
     }
 
     LinkedBlockingQueue<Request> pendingTxns = new LinkedBlockingQueue<>();
