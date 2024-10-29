@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 
 /**
  *
@@ -37,10 +38,12 @@ public class JRecord extends JCompType {
     private String mModule;
     private List<JField> mFields;
 
+    private JCommentGenerator jCommentGenerator;
+
     /**
      * Creates a new instance of JRecord.
      */
-    public JRecord(String name, ArrayList<JField> flist) {
+    public JRecord(String name, ArrayList<JField> flist, JCommentGenerator commentGenerator) {
         super("struct " + name.substring(name.lastIndexOf('.') + 1),
                 name.replaceAll("\\.", "::"), getCsharpFQName(name), name, "Record", name, getCsharpFQName("IRecord"));
         mFQName = name;
@@ -48,6 +51,7 @@ public class JRecord extends JCompType {
         mName = name.substring(idx + 1);
         mModule = name.substring(0, idx);
         mFields = flist;
+        jCommentGenerator = commentGenerator;
     }
 
     public String getName() {
@@ -208,8 +212,18 @@ public class JRecord extends JCompType {
             }
         }
         String recName = getName();
+
+        String recordComments = getRecordComments();
+        if (recordComments != null && !recordComments.isEmpty()) {
+            h.write(recordComments);
+        }
         h.write("struct " + recName + " {\n");
         for (JField f : mFields) {
+
+            String fieldComments = getCFieldComments(f);
+            if (fieldComments != null && !fieldComments.isEmpty()) {
+                h.write(fieldComments);
+            }
             h.write(f.genCDecl());
         }
         h.write("};\n");
@@ -436,10 +450,19 @@ public class JRecord extends JCompType {
             jj.write("import org.apache.jute.*;\n");
             jj.write("import org.apache.jute.Record; // JDK14 needs explicit import due to clash with java.lang.Record\n");
             jj.write("import org.apache.yetus.audience.InterfaceAudience;\n");
+            String recordComments = getRecordComments();
+            if (recordComments != null && !recordComments.isEmpty()) {
+                jj.write(recordComments);
+            }
             jj.write("@InterfaceAudience.Public\n");
             jj.write("public class " + getName() + " implements Record {\n");
             for (Iterator<JField> i = mFields.iterator(); i.hasNext(); ) {
                 JField jf = i.next();
+
+                String fieldComments = getJavaFieldComments(jf);
+                if (fieldComments != null && !fieldComments.isEmpty()) {
+                    jj.write(fieldComments);
+                }
                 jj.write(jf.genJavaDecl());
             }
             jj.write("  public " + getName() + "() {\n");
@@ -766,5 +789,54 @@ public class JRecord extends JCompType {
             }
         }
         return fQName.toString();
+    }
+
+    private String getJavaFieldComments(JField jField) {
+        StringJoiner javaFieldCommentsJoiner =
+                new StringJoiner("\n   * ", "  /**\n   * ", "\n   */\n").setEmptyValue("");
+        return getFieldComments(jField, javaFieldCommentsJoiner);
+    }
+
+    private String getCFieldComments(JField jField) {
+        StringJoiner cFieldCommentsJoiner =
+                new StringJoiner("\n     * ", "    /**\n     * ", "\n     */\n").setEmptyValue("");
+        return getFieldComments(jField, cFieldCommentsJoiner);
+    }
+
+    private String getFieldComments(JField jField, StringJoiner fieldCommentsJoiner) {
+        List<String> fieldSpecialToken = jCommentGenerator.getFieldCommentsList(jField);
+        return getComments(fieldCommentsJoiner, fieldSpecialToken);
+    }
+
+    private String getRecordComments() {
+        List<String> classSpecialToken = jCommentGenerator.getRecordCommentsList(this);
+
+        StringJoiner recordCommentsJoiner =
+                new StringJoiner("\n * ", "/**\n * ", "\n */\n").setEmptyValue("");
+        return getComments(recordCommentsJoiner, classSpecialToken);
+    }
+
+    private static String getComments(StringJoiner commentsJoiner, List<String> commentList) {
+        if (commentList == null || commentList.isEmpty()) {
+            return commentsJoiner.toString();
+        }
+
+        for (String commentMulti : commentList) {
+            if (commentMulti == null || commentMulti.isEmpty()) {
+                continue;
+            }
+
+            String[] commentArray = commentMulti.split("\n");
+            for (String comment : commentArray) {
+
+                comment = comment.replaceAll("//|/\\*\\*|/\\*|\\*\\*/|\\*/", "")
+                        .replaceAll("^[* ]+", "").trim();
+
+                if (!comment.isEmpty()) {
+                    commentsJoiner.add(comment);
+                }
+            }
+        }
+        return commentsJoiner.toString();
     }
 }

@@ -21,7 +21,7 @@ package org.apache.jute.compiler;
 /**
  * Abstract Base class for all types supported by Hadoop Record I/O.
  */
-public abstract class JType {
+public abstract class JType extends RangeInfo {
 
     private String mCName;
     private String mCppName;
