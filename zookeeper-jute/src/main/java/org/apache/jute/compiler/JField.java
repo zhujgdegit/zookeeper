@@ -21,7 +21,7 @@ package org.apache.jute.compiler;
 /**
  *
  */
-public class JField {
+public class JField extends RangeInfo {
     private JType mType;
     private String mName;
 

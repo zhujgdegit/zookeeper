@@ -38,6 +38,10 @@ public class Rcc {
     private static String curFileName;
     private static String curModuleName;
 
+    private final JCommentGenerator jCommentGenerator = new JCommentGenerator();
+    private int currentBeginLine = 0;
+    private int currentBeginColumn = 0;
+
     public static void main(String args[]) {
         String language = "java";
         ArrayList<String> recFiles = new ArrayList<String>();
@@ -246,7 +250,12 @@ String ModuleName() :
 }
 {
     t = <IDENT_TKN>
-    { name += t.image; }
+    {
+        jCommentGenerator.putFieldSpecialToken(t);
+        currentBeginLine = t.beginLine;
+        currentBeginColumn = t.beginColumn;
+        name += t.image;
+    }
     (
         <DOT_TKN>
         t = <IDENT_TKN>
@@ -274,24 +283,49 @@ JRecord Record() :
     ArrayList<JField> flist = new ArrayList<JField>();
     Token t;
     JField f;
+    // Get the comments on the class token
+    Token recordTkn;
+    Token rbraceTkn;
+    Token semicolonTkn;
 }
 {
-    <RECORD_TKN>
+    recordTkn = <RECORD_TKN>
     t = <IDENT_TKN>
     { rname = t.image; }
     <LBRACE_TKN>
     (
         f = Field()
-        { flist.add(f); }
-        <SEMICOLON_TKN>
+        {
+            flist.add(f);
+        }
+        semicolonTkn = <SEMICOLON_TKN>
+        {
+            f.setBeginLine(currentBeginLine);
+            f.setBeginColumn(currentBeginColumn);
+            f.setEndLine(semicolonTkn.endLine);
+            f.setEndColumn(semicolonTkn.endColumn);
+            currentBeginLine = 0;
+            currentBeginColumn = 0;
+            jCommentGenerator.putFieldSpecialToken(t);
+            jCommentGenerator.addJField(f);
+        }
     )+
-    <RBRACE_TKN>
+
+    // Get the line ending comment of the last attribute
+    rbraceTkn = <RBRACE_TKN>
     {
-        String fqn = curModuleName + "." + rname;
-        JRecord r = new JRecord(fqn, flist);
-        recTab.put(fqn, r);
-        return r;
-    }
+    String fqn = curModuleName + "." + rname;
+    JRecord r = new JRecord(fqn, flist, jCommentGenerator);
+    r.setBeginLine(recordTkn.beginLine);
+    r.setBeginColumn(recordTkn.beginColumn);
+    r.setEndLine(rbraceTkn.endLine);
+    r.setEndColumn(rbraceTkn.endColumn);
+    recTab.put(fqn, r);
+    jCommentGenerator.addJRecord(r);
+    jCommentGenerator.putFieldSpecialToken(rbraceTkn);
+    jCommentGenerator.putRecordSpecialToken(recordTkn);
+    return r;
+}
 }
 
 JField Field() :
@@ -302,36 +336,37 @@ JField Field() :
 {
     jt = Type()
     t = <IDENT_TKN>
-    { return new JField(jt, t.image); }
+    {
+        jCommentGenerator.putFieldSpecialToken(t);
+        return new JField(jt, t.image);
+    }
 }
 
 JType Type() :
 {
     JType jt;
-    Token t;
+    Token t = null;
     String rname;
 }
 {
-    jt = Map()
-    { return jt; }
+    (jt = Map()
 |   jt = Vector()
-    { return jt; }
-|   <BYTE_TKN>
-    { return new JByte(); }
-|   <BOOLEAN_TKN>
-    { return new JBoolean(); }
-|   <INT_TKN>
-    { return new JInt(); }
-|   <LONG_TKN>
-    { return new JLong(); }
-|   <FLOAT_TKN>
-    { return new JFloat(); }
-|   <DOUBLE_TKN>
-    { return new JDouble(); }
-|   <USTRING_TKN>
-    { return new JString(); }
-|   <BUFFER_TKN>
-    { return new JBuffer(); }
+|   t = <BYTE_TKN>
+    { jt = new JByte(); }
+|   t = <BOOLEAN_TKN>
+    { jt = new JBoolean(); }
+|   t = <INT_TKN>
+    { jt = new JInt(); }
+|   t = <LONG_TKN>
+    { jt = new JLong(); }
+|   t = <FLOAT_TKN>
+    { jt = new JFloat(); }
+|   t = <DOUBLE_TKN>
+    { jt = new JDouble(); }
+|   t = <USTRING_TKN>
+    { jt = new JString(); }
+|   t = <BUFFER_TKN>
+    { jt = new JBuffer(); }
 |   rname = ModuleName()
     {
         if (rname.indexOf('.', 0) < 0) {
@@ -343,6 +378,15 @@ JType Type() :
             System.exit(1);
         }
         return r;
+    })
+
+    {
+        jCommentGenerator.putFieldSpecialToken(t);
+        if (t != null) {
+            currentBeginLine = t.beginLine;
+            currentBeginColumn = t.beginColumn;
+        }
+        return jt;
     }
 }
 
@@ -350,25 +394,37 @@ JMap Map() :
 {
     JType jt1;
     JType jt2;
+    Token t;
 }
 {
-    <MAP_TKN>
+    t = <MAP_TKN>
     <LT_TKN>
     jt1 = Type()
     <COMMA_TKN>
     jt2 = Type()
     <GT_TKN>
-    { return new JMap(jt1, jt2); }
+    {
+        jCommentGenerator.putFieldSpecialToken(t);
+        currentBeginLine = t.beginLine;
+        currentBeginColumn = t.beginColumn;
+        return new JMap(jt1, jt2);
+    }
 }
 
 JVector Vector() :
 {
     JType jt;
+    Token t;
 }
 {
-    <VECTOR_TKN>
+    t = <VECTOR_TKN>
     <LT_TKN>
     jt = Type()
     <GT_TKN>
-    { return new JVector(jt); }
+    {
+        jCommentGenerator.putFieldSpecialToken(t);
+        currentBeginLine = t.beginLine;
+        currentBeginColumn = t.beginColumn;
+        return new JVector(jt);
+    }
 }
