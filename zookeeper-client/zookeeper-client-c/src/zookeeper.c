@@ -692,6 +692,7 @@ static void destroy(zhandle_t *zh)
 #ifdef HAVE_OPENSSL_H
     if (zh->fd->cert) {
         free(zh->fd->cert->certstr);
+        free(zh->fd->cert->ca);
         free(zh->fd->cert);
         zh->fd->cert = NULL;
     }
